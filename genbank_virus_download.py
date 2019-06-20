@@ -128,11 +128,10 @@ for query in queries:
                     # correct ORF or gene name
                     if not hit:
                         if f.type == "gene" or f.type == "CDS":
-                            if f.qualifiers.get('gene') is not None and f.qualifiers.get('gene')[0] in query[0]:
+                            if (f.qualifiers.get('gene') is not None and f.qualifiers.get('gene')[0] in query[0]) or (f.qualifiers.get('product') is not None and f.qualifiers.get('product')[0] in query[0]):
                                 feature_record = SeqRecord(f.extract(r.seq), id=r.id, description = " ".join(query[0]))
                                 extracted_fasta_path = os.path.join(odir, "{}_{}.fsa".format(query[0][0], r.id))
                                 SeqIO.write(feature_record, extracted_fasta_path, "fasta")
-                                hit = True
             fasta_path = os.path.join(odir, "{}.fsa".format(r.id))
             SeqIO.write(r, fasta_path, "fasta")
             sample_insert.append((r.id, fasta_path, extracted_fasta_path))
