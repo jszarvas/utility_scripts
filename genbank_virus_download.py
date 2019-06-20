@@ -7,7 +7,7 @@ from Bio import Entrez
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-
+import json
 import sqlite3
 
 BATCH_SIZE = 100
@@ -120,12 +120,16 @@ for query in queries:
             extracted_fasta_path = None
             if query[0][0] != "-":
                 for f in r.features:
+                    # save metadata in json
+                    if f.type == "source":
+                        with open(os.path.join(odir, "{}.json".format(r.id)), "w") as op:
+                            json.dump(f.qualifiers, op)
                     # correct ORF or gene name
-                    if f.type == "CDS" and f.qualifiers.get('gene') is not None and f.qualifiers.get('gene')[0] in query[0]:
-                        feature_record = SeqRecord(f.extract(r.seq), id=r.id, description = " ".join(query[0]))
-                        extracted_fasta_path = os.path.join(odir, "{}_{}.fsa".format(query[0][0], r.id))
-                        SeqIO.write(feature_record, extracted_fasta_path, "fasta")
-                        break
+                    if f.type == "CDS" and f.qualifiers.get('gene') is not None:
+                        if f.qualifiers.get('gene')[0] in query[0]:
+                            feature_record = SeqRecord(f.extract(r.seq), id=r.id, description = " ".join(query[0]))
+                            extracted_fasta_path = os.path.join(odir, "{}_{}.fsa".format(query[0][0], r.id))
+                            SeqIO.write(feature_record, extracted_fasta_path, "fasta")
             fasta_path = os.path.join(odir, "{}.fsa".format(r.id))
             SeqIO.write(r, fasta_path, "fasta")
             sample_insert.append((r.id, fasta_path, extracted_fasta_path))
@@ -136,4 +140,3 @@ for query in queries:
         conn.commit()
         sample_insert = []
     conn.close()
-
