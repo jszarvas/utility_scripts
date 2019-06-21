@@ -94,7 +94,7 @@ else:
     Entrez.email = "jusz@dtu.dk"
 
 for query in queries:
-    query_str = query[1] + "AND biomol_genomic[PROP]"
+    query_str = query[1]
     # 'txid11983[Organism] AND biomol_genomic[PROP] AND ("450"[SLEN] : "8000"[SLEN])'
     handle = Entrez.esearch(db="nucleotide", term=query_str, idtype="acc", retmax=50000)
     record = Entrez.read(handle)
