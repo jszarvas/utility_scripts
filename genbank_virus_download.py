@@ -141,4 +141,4 @@ for query in queries:
         cur.executemany('''INSERT OR REPLACE INTO samples (accession, path, feature_path) VALUES (?,?,?)''', sample_insert)
         conn.commit()
         sample_insert = []
-    conn.close()
+conn.close()
