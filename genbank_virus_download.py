@@ -122,7 +122,7 @@ for query in queries:
                 # save metadata in json
                 if f.type == "source":
                     metadata = {'id': r.id,
-                          'name': r.name }
+                          'description': r.description }
                     metadata.update(f.qualifiers)
                     with open(os.path.join(odir, "{}.json".format(r.id)), "w") as op:
                         json.dump(metadata, op)
