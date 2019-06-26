@@ -121,8 +121,11 @@ for query in queries:
             for f in r.features:
                 # save metadata in json
                 if f.type == "source":
+                    metadata = {'id': r.id,
+                          'name': r.name }
+                    metadata.update(f.qualifiers)
                     with open(os.path.join(odir, "{}.json".format(r.id)), "w") as op:
-                        json.dump(f.qualifiers, op)
+                        json.dump(metadata, op)
                 # correct ORF or gene name
                 if query[0][0] != "-":
                     if f.type == "gene" or f.type == "CDS":
