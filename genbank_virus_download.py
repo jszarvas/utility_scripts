@@ -9,6 +9,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 import json
 import sqlite3
+import re
 
 BATCH_SIZE = 100
 
@@ -118,6 +119,7 @@ for query in queries:
         records = SeqIO.parse(fetch_handle, "gb")
         for r in records:
             extracted_fasta_path = None
+            r.id = re.sub(r"\W+","_", r.id)
             for f in r.features:
                 # save metadata in json
                 if f.type == "source":
