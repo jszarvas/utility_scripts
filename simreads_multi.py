@@ -100,7 +100,7 @@ coverage=30
 #coverage=5
 
 filename = options.outputfilename
-for i in xrange(0, nseq):
+for i in range(0, nseq):
   if options.separate:
     filename = os.path.join(options.outputfilename, "{}.fastq".format(re.sub(r"\W+","_",inputname[i])))
     outputfile = open(filename, "w")
@@ -110,7 +110,7 @@ for i in xrange(0, nseq):
     outputfile.write("%s\n" % ("@"))
     outputfile.write("%s\n" % (inputseq[i][start:end]))
     outputfile.write("%s\n" % ("+"))
-    for j in xrange(0,readlength):
+    for j in range(0,readlength):
       outputfile.write("%s" % ("6"))
     outputfile.write("\n")
     start += stepsize
@@ -125,13 +125,13 @@ for i in xrange(0, nseq):
       outputfile.write("%s\n" % ("@"))
       outputfile.write("%s\n" % (inputseq[i][0:readlength]))
       outputfile.write("%s\n" % ("+"))
-      for j in xrange(0,readlength):
+      for j in range(0,readlength):
         outputfile.write("%s" % ("6"))
       outputfile.write("\n")
       outputfile.write("%s\n" % ("@"))
       outputfile.write("%s\n" % (inputseq[i][end-readlength:end]))
       outputfile.write("%s\n" % ("+"))
-      for j in xrange(0,readlength):
+      for j in range(0,readlength):
         outputfile.write("%s" % ("6"))
       outputfile.write("\n")
   if options.separate:
