@@ -133,11 +133,7 @@ for query in queries:
                     if f.type == "gene" or f.type == "CDS":
                         if (f.qualifiers.get('gene') is not None and f.qualifiers.get('gene')[0].lower() in query[0]) or (f.qualifiers.get('product') is not None and f.qualifiers.get('product')[0].lower() in query[0]) or (f.qualifiers.get('note') is not None and f.qualifiers.get('note')[0].lower() in query[0]):
                             feature_record = SeqRecord(f.extract(r.seq), id=r.id, description = r.description)
-<<<<<<< HEAD
                             extracted_fasta_path = os.path.join(odir, "{}_{}.fsa".format(query[0][0].upper(), r.id))
-=======
-                            extracted_fasta_path = os.path.join(odir, "{}_{}.fsa".format(query[0][0], r.id))
->>>>>>> 785e6baa5f8579133facce05e9eed5dfab47bc38
                             SeqIO.write(feature_record, extracted_fasta_path, "fasta")
                 else:
                     break
