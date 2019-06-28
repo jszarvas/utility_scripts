@@ -105,7 +105,7 @@ for query in queries:
 
     acc = []
     for r in record['IdList']:
-        cur.execute('''SELECT * FROM samples WHERE accession=?''', (r,))
+        cur.execute('''SELECT * FROM samples WHERE accession=?''', (re.sub(r"\W+","_", r),))
         if cur.fetchone() is None:
             acc.append(r)
 
