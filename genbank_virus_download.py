@@ -75,7 +75,7 @@ if args.cf is not None:
                 #ORF2   txid11983[Organism] AND biomol_genomic[PROP] AND ("450"[SLEN] : "8000"[SLEN])
                 tmp = line.strip().split("\t")
                 if not tmp[0].isspace():
-                    tmp[0] = tmp[0].split("|")
+                    tmp[0] = [x.lower() for x in tmp[0].split("|")]
                     queries.append(tmp)
 else:
     exiting("No query supplied")
@@ -131,7 +131,7 @@ for query in queries:
                 # correct ORF or gene name
                 if query[0][0] != "-":
                     if f.type == "gene" or f.type == "CDS":
-                        if (f.qualifiers.get('gene') is not None and f.qualifiers.get('gene')[0] in query[0]) or (f.qualifiers.get('product') is not None and f.qualifiers.get('product')[0] in query[0]) or (f.qualifiers.get('note') is not None and f.qualifiers.get('note')[0] in query[0]):
+                        if (f.qualifiers.get('gene') is not None and f.qualifiers.get('gene')[0].lower() in query[0]) or (f.qualifiers.get('product') is not None and f.qualifiers.get('product')[0].lower() in query[0]) or (f.qualifiers.get('note') is not None and f.qualifiers.get('note')[0].lower() in query[0]):
                             feature_record = SeqRecord(f.extract(r.seq), id=r.id, description = " ".join(query[0]))
                             extracted_fasta_path = os.path.join(odir, "{}_{}.fsa".format(query[0][0], r.id))
                             SeqIO.write(feature_record, extracted_fasta_path, "fasta")
