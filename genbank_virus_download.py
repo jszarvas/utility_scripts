@@ -63,6 +63,9 @@ cur.execute('''CREATE TABLE IF NOT EXISTS samples
     feature_path TEXT,
     dl_date TEXT DEFAULT CURRENT_DATE,
     included INTEGER DEFAULT NULL);''')
+cur.execute('''CREATE TABLE IF NOT EXISTS metadata
+    (accession TEXT PRIMARY KEY,
+    description TEXT);''')
 conn.commit()
 
 queries = []
@@ -112,8 +115,9 @@ for query in queries:
     n_acc = len(acc)
     batches = [acc[x:x + BATCH_SIZE] for x in range(0, n_acc, BATCH_SIZE)]
 
-    sample_insert = []
     for batch in batches:
+        sample_insert = []
+        metadata_insert = []
         acc_str = ",".join(batch)
         fetch_handle = Entrez.efetch(db="nuccore", id=acc_str, rettype="gb", retmode="text")
         records = SeqIO.parse(fetch_handle, "gb")
@@ -123,7 +127,8 @@ for query in queries:
             for f in r.features:
                 # save metadata in json
                 if f.type == "source":
-                    metadata = {'id': r.id,
+                    metadata_insert.append((r.id, r.description))
+                    metadata = {'accession': r.id,
                           'description': r.description }
                     metadata.update(f.qualifiers)
                     with open(os.path.join(odir, "{}.json".format(r.id)), "w") as op:
@@ -144,6 +149,6 @@ for query in queries:
 
         # insert to db, then re-init
         cur.executemany('''INSERT OR REPLACE INTO samples (accession, path, feature_path) VALUES (?,?,?)''', sample_insert)
+        cur.executemany('''INSERT OR REPLACE INTO metadata (accession, description) VALUES (?,?)''', metadata_insert)
         conn.commit()
-        sample_insert = []
 conn.close()
