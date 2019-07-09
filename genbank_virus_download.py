@@ -7,11 +7,15 @@ from Bio import Entrez
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from datetime import datetime
 import json
 import sqlite3
 import re
+import locale
 
 BATCH_SIZE = 100
+# set to US for the date parsing
+locale.setlocale(locale.LC_ALL, 'en_US.utf8')
 
 def exiting(message):
     print(message, file=sys.stderr)
@@ -65,7 +69,9 @@ cur.execute('''CREATE TABLE IF NOT EXISTS samples
     included INTEGER DEFAULT NULL);''')
 cur.execute('''CREATE TABLE IF NOT EXISTS metadata
     (accession TEXT PRIMARY KEY,
-    description TEXT);''')
+    description TEXT,
+    submit_date TEXT,
+    country TEXT);''')
 conn.commit()
 
 queries = []
@@ -119,36 +125,49 @@ for query in queries:
         sample_insert = []
         metadata_insert = []
         acc_str = ",".join(batch)
-        fetch_handle = Entrez.efetch(db="nuccore", id=acc_str, rettype="gb", retmode="text")
-        records = SeqIO.parse(fetch_handle, "gb")
-        for r in records:
-            extracted_fasta_path = None
-            r.id = re.sub(r"\W+","_", r.id)
-            for f in r.features:
-                # save metadata in json
-                if f.type == "source":
-                    metadata_insert.append((r.id, r.description))
-                    metadata = {'accession': r.id,
-                          'description': r.description }
-                    metadata.update(f.qualifiers)
-                    with open(os.path.join(odir, "{}.json".format(r.id)), "w") as op:
-                        json.dump(metadata, op)
-                # correct ORF or gene name
-                if query[0][0] != "-":
-                    if f.type == "gene" or f.type == "CDS":
-                        if (f.qualifiers.get('gene') is not None and f.qualifiers.get('gene')[0].lower() in query[0]) or (f.qualifiers.get('product') is not None and f.qualifiers.get('product')[0].lower() in query[0]) or (f.qualifiers.get('note') is not None and f.qualifiers.get('note')[0].lower() in query[0]):
-                            feature_record = SeqRecord(f.extract(r.seq), id=r.id, description = r.description)
-                            extracted_fasta_path = os.path.join(odir, "{}_{}.fsa".format(query[0][0].upper(), r.id))
-                            SeqIO.write(feature_record, extracted_fasta_path, "fasta")
-                else:
-                    break
-            fasta_path = os.path.join(odir, "{}.fsa".format(r.id))
-            SeqIO.write(r, fasta_path, "fasta")
-            sample_insert.append((r.id, fasta_path, extracted_fasta_path))
-        fetch_handle.close()
+        done = False
+        while not done:
+            try:
+                fetch_handle = Entrez.efetch(db="nuccore", id=acc_str, rettype="gb", retmode="text")
+                records = SeqIO.parse(fetch_handle, "gb")
+                for r in records:
+                    extracted_fasta_path = None
+                    r.id = re.sub(r"\W+","_", r.id)
+                    for f in r.features:
+                        # save metadata in json
+                        if f.type == "source":
+                            metadata_insert.append((r.id, r.description))
+                            country = None
+                            if r.qualifiers.get('country') is not None:
+                                country = r.qualifiers.get('country')[0]
+                            sdate = datetime.strftime(datetime.strptime(r.annotations['date'], "%d-%b-%Y"), "%Y-%m-%d")
+                            metadata = {'accession': r.id,
+                                  'description': r.description,
+                                  'submit_date': sdate,
+                                  'country': country }
+                            metadata.update(f.qualifiers)
+                            with open(os.path.join(odir, "{}.json".format(r.id)), "w") as op:
+                                json.dump(metadata, op)
+                        # correct ORF or gene name
+                        if query[0][0] != "-":
+                            if f.type == "gene" or f.type == "CDS":
+                                if (f.qualifiers.get('gene') is not None and f.qualifiers.get('gene')[0].lower() in query[0]) or (f.qualifiers.get('product') is not None and f.qualifiers.get('product')[0].lower() in query[0]) or (f.qualifiers.get('note') is not None and f.qualifiers.get('note')[0].lower() in query[0]):
+                                    feature_record = SeqRecord(f.extract(r.seq), id=r.id, description = r.description)
+                                    extracted_fasta_path = os.path.join(odir, "{}_{}.fsa".format(query[0][0].upper(), r.id))
+                                    SeqIO.write(feature_record, extracted_fasta_path, "fasta")
+                        else:
+                            break
+                    fasta_path = os.path.join(odir, "{}.fsa".format(r.id))
+                    SeqIO.write(r, fasta_path, "fasta")
+                    sample_insert.append((r.id, fasta_path, extracted_fasta_path))
+                fetch_handle.close()
+                done = True
+            except ConnectionResetError:
+                print("Sleep 120sec on connection reset")
+                time.sleep(120)
 
-        # insert to db, then re-init
+        # insert to db
         cur.executemany('''INSERT OR REPLACE INTO samples (accession, path, feature_path) VALUES (?,?,?)''', sample_insert)
-        cur.executemany('''INSERT OR REPLACE INTO metadata (accession, description) VALUES (?,?)''', metadata_insert)
+        cur.executemany('''INSERT OR REPLACE INTO metadata (accession, description, submit_date, country) VALUES (?,?,?,?)''', metadata_insert)
         conn.commit()
 conn.close()
