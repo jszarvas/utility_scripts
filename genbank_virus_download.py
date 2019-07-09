@@ -136,15 +136,14 @@ for query in queries:
                     for f in r.features:
                         # save metadata in json
                         if f.type == "source":
-                            metadata_insert.append((r.id, r.description))
                             country = None
-                            if r.qualifiers.get('country') is not None:
-                                country = r.qualifiers.get('country')[0]
+                            if f.qualifiers.get('country') is not None:
+                                country = f.qualifiers.get('country')[0]
                             sdate = datetime.strftime(datetime.strptime(r.annotations['date'], "%d-%b-%Y"), "%Y-%m-%d")
+                            metadata_insert.append((r.id, r.description, sdate, country))
                             metadata = {'accession': r.id,
                                   'description': r.description,
-                                  'submit_date': sdate,
-                                  'country': country }
+                                  'submit_date': sdate }
                             metadata.update(f.qualifiers)
                             with open(os.path.join(odir, "{}.json".format(r.id)), "w") as op:
                                 json.dump(metadata, op)
