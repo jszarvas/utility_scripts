@@ -91,12 +91,14 @@ del inputseqsegments
 # parameters for the reads
 #
 nseq = len(inputseq)
-readlength = 150
+readlength = 200
 # lower coverage for the perfect reads
-stepsize = 5
+stepsize = 2
+#stepsize = 5
 #stepsize = 30
 
-coverage=30
+coverage=100
+#coverage=30
 #coverage=5
 
 filename = options.outputfilename
