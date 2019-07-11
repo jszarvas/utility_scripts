@@ -140,6 +140,8 @@ for query in queries:
                             if f.qualifiers.get('country') is not None:
                                 country = f.qualifiers.get('country')[0]
                             sdate = datetime.strftime(datetime.strptime(r.annotations['date'], "%d-%b-%Y"), "%Y-%m-%d")
+                            if f.qualifiers.get('collection_date') is not None:
+                                sdate = f.qualifiers.get('collection_date')
                             metadata_insert.append((r.id, r.description, sdate, country))
                             metadata = {'accession': r.id,
                                   'description': r.description,
