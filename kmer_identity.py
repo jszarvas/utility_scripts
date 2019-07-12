@@ -67,6 +67,7 @@ elif args.fsa_list is not None and os.path.exists(args.fsa_list):
 print(len(kmers))
 
 matrix = []
+# list of hashes
 seqlist = fasta_ids.keys()
 # template
 for i_seq in seqlist:
@@ -90,6 +91,7 @@ for i_seq in seqlist:
 # print as tsv
 with open(args.ofile, "w") as matfile:
     sids = [fasta_ids[x] for x in seqlist]
+    print("#query", end="\t", file=matfile)
     print("\t".join(sids), file=matfile)
     for r, row in enumerate(matrix):
         print("{}".format(sids[r]), end = "\t", file=matfile)
