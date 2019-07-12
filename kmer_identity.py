@@ -44,6 +44,12 @@ parser.add_argument(
     default=16,
     type=int,
     help='Kmer size')
+parser.add_argument(
+    '-t',
+    dest="thr",
+    default=2.00,
+    type=float,
+    help='Print threshold')
 args = parser.parse_args()
 
 
@@ -82,7 +88,7 @@ for i_seq in seqlist:
                     if j_seq in val:
                         common += 1
             simil = common / i_mers
-            if simil > 0.20:
+            if simil > args.thr:
                 print(fasta_ids[i_seq], fasta_ids[j_seq], i_mers, common, simil)
             matrix[-1].append('{:.6f}'.format(simil))
         else:
