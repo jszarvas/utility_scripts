@@ -34,6 +34,11 @@ parser.add_argument(
     dest="concat",
     action="store_true",
     help='Concatenate the entries')
+parser.add_argument(
+    '--het',
+    dest="het",
+    action="store_true",
+    help='Add heterozygous SNPs')
 args = parser.parse_args()
 
 vcf_i = None
@@ -47,6 +52,20 @@ if args.ref_file is not None and os.path.exists(args.ref_file):
     records = list(SeqIO.parse(args.ref_file, "fasta"))
 else:
     sys.exit("Ref needed")
+
+ambigous_dna = {
+    "AG": "R",
+    "CT": "Y",
+    "CG": "S",
+    "AT": "W",
+    "GT": "K",
+    "AC": "M",
+    "CGT": "B",
+    "AGT": "D",
+    "ACT": "H",
+    "ACG": "V",
+    "ACGT": "n"
+    }
 
 # references = vcf_i.seqnames
 concat = []
@@ -78,10 +97,14 @@ for rec in records:
                 # passed VariantFiltration, and not deletion or struct var
                 if variant.FILTER is None:
                     if not variant.is_deletion and not variant.is_sv:
-                        # homozygous
+                        # homozygous snps and insertions
                         # insertion A -> ACT gets trimmed
                         if sum(variant.genotypes[0][:2]) == 2:
                             contig.append(variant.ALT[0][:len(variant.REF)])
+                        # heterozygous snps
+                        elif args.het and variant.is_snp:
+                            b = v.REF + v.ALT
+                            contig.append(ambigous_dna["".join(sorted(b))])
                         elif variant.is_indel:
                             contig.append(variant.ALT[0][0])
                             contig.append("n" * (len(variant.REF) - 1))
