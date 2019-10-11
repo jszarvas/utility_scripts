@@ -41,8 +41,9 @@ with open(sys.argv[1], "w") as of:
     SeqIO.write(records, of, "fasta")
 
 # partitions file to go with it
-cummulated_len = 1
+cummulated_len = 0
 with open("{}.partitions".format(sys.argv[1].rsplit(".",1)[0]), "w") as pop:
     for i, part_len in enumerate(lens):
-        print("DNA, part{0} = {1}-{2}".format(i+1, cummulated_len, part_len), file=pop)
-        cummulated_len += part_len
+        end_len = cummulated_len + part_len
+        print("DNA, part{0} = {1}-{2}".format(i+1, cummulated_len + 1, end_len), file=pop)
+        cummulated_len = end_len
