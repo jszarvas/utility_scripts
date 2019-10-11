@@ -6,10 +6,10 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 
 if (len(sys.argv) == 1):
-    print("program <output file> <mfa 1> <mfa 2> <mfa 3 etc>")
+    print("program <output file> <description> <mfa 1> <mfa 2> <mfa 3 etc>")
     sys.exit(1)
 else:
-    filenames = sys.argv[2:]
+    filenames = sys.argv[3:]
 
 rec_ords = {}
 lens = []
@@ -36,6 +36,7 @@ records = []
 for recordid, concat_seq in rec_ords.items():
     concatted = SeqRecord(concat_seq)
     concatted.id = recordid
+    concatted.description = sys.argv[2]
     records.append(concatted)
 with open(sys.argv[1], "w") as of:
     SeqIO.write(records, of, "fasta")
