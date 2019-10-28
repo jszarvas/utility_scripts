@@ -233,9 +233,11 @@ suffix = ""
 
 
 # File with consensus
-wdir = os.path.dirname(args.seq_file)
 if args.seq_file is None:
     exiting('No input filelist was provided')
+wdir = os.path.dirname(args.seq_file)
+if not wdir:
+    wdir = os.getcwd()
 
 # Output prefix
 prefix = os.path.realpath(args.seq_file)
@@ -389,7 +391,7 @@ if args.allcalled:
     mode = 'all'
 
 method = "dist"
-wdir = change2subdir(mode, method, suffix, wdir)
+subwdir = change2subdir(mode, method, suffix, wdir)
 matpath = os.path.relpath(outputmat)
 treefilename = "outtree"
 
@@ -414,7 +416,7 @@ except:
 os.chdir(wdir)
 if not args.keep:
     try:
-        shutil.rmtree(wdir)
+        shutil.rmtree(subwdir)
     except:
         pass
 
