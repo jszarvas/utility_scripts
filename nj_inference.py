@@ -7,13 +7,10 @@ import array
 import argparse
 from operator import itemgetter
 import gzip
-import tempfile
 import math
-from ete3 import Tree
 import subprocess
 from multiprocessing import cpu_count
-from joblib import Parallel, delayed, load, dump
-import sqlite3
+from joblib import Parallel, delayed
 
 
 # quick hack
@@ -234,7 +231,6 @@ args = parser.parse_args()
 
 suffix = ""
 
-cpu_count = cpu_count()
 
 # File with consensus
 wdir = os.path.dirname(args.seq_file)
@@ -297,7 +293,7 @@ tot_len = None
 # load and encode isolates
 # might not need to be parallel (overhead)
 if slens > 30:
-    arrays = Parallel(n_jobs=n_cpu)(delayed(read_encode_univ)(isolatefile, None) for isolatefile in inseqs)
+    arrays = Parallel(n_jobs=no_jobs)(delayed(read_encode_univ)(isolatefile, None) for isolatefile in inseqs)
     # dump as a memmap and concat
     tot_len = np.shape(arrays[0])[0]
     for i, arr in enumerate(arrays):
@@ -345,9 +341,6 @@ if not args.quiet:
     print("# Total length: %s" % (tot_len), file=sys.stdout)
     print("# Number of strains: %s" % (slens), file=sys.stdout)
 
-# dump hr array to /dev/shm
-temp_folder = tempfile.mkdtemp(prefix='ever_joblib_', dir='/dev/shm')
-
 # calculate genetic distance between isolates
 no_jobs = min(slens, no_jobs)
 batch_size = int(math.ceil(slens/float(no_jobs)))
@@ -388,12 +381,6 @@ with open(outputmat, "w") as matfile:
         print('{0:.0f}'.format(row[-1]), file=matfile)
 
 timing("# Constructed distance matrix.")
-
-try:
-    import shutil
-    shutil.rmtree(temp_folder)
-except:
-    pass
 
 timing("# Distance calculation is finished.")
 
