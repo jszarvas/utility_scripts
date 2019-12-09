@@ -330,6 +330,8 @@ elif args.probabilistic:
     mean_a = np.mean(known_frac, dtype=np.float64)
     threshold = mean_a - std_dev
     m = (known_frac >= threshold)
+    if not args.quiet:
+        print("# Prob stats: {0:.4f} {1:.4f}".format(mean_a, std_dev), file=sys.stdout)
 else:
     pass
 
@@ -354,6 +356,8 @@ timing("# Removed non-informative positions from matrix.")
 if not args.quiet:
     print("# Total length: %s" % (tot_len), file=sys.stdout)
     print("# Number of strains: %s" % (slens), file=sys.stdout)
+
+
 
 # calculate genetic distance between isolates
 no_jobs = min(slens, no_jobs)
