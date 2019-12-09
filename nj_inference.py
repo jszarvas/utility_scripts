@@ -224,7 +224,8 @@ parser = argparse.ArgumentParser(
     description='Calculates genetic distance between a set of input sequences')
 parser.add_argument("-seq", "--seqlist", dest="seq_file", help="Read non-homologous sequences from")
 parser.add_argument("-pre", "--prefix", dest="prefix", help="Output path prefix")
-parser.add_argument("-a", "--allcalled", dest="allcalled", action="store_true", help="Only use positions called in all strains")
+parser.add_argument("-a", "--allcalled", dest="allcalled", action="store_true", help="Removal of all uncertain positions")
+parser.add_argument("-s", "--probable", dest="probabilistic", action="store_true", help="Probabilistic removal of uncertain positions")
 parser.add_argument('-k', '--keep', dest="keep", action="store_true", help='Keep temporary subdirectory')
 parser.add_argument("-q", "--quiet", dest="quiet", action="store_true", help="Quiet")
 args = parser.parse_args()
@@ -317,19 +318,29 @@ else:
 
 timing("# Loaded sequence matrix into memory.")
 
-# trunc the allcalled matrices
+## Remove uncertain regions
+# determine masks, probabilistic, remove: False
 m = None
 if args.allcalled:
-    # create the 'all' mask from the arrays
     m = (inputseqmat != 0).all(axis=0)
+elif args.probabilistic:
+    known_frac = np.round_((inputseqmat != 0).sum(0) / vol_len, 5)
+    std_dev = np.std(known_frac, dtype=np.float64)
+    mean_a = np.mean(known_frac, dtype=np.float64)
+    threshold = mean_a - std_dev
+    m = (known_frac >= threshold)
+else:
+    pass
+
+if m is not None:
     inputseqmat = inputseqmat.T[m].T
 
-# conserved positions for both type of distance calculation
+# conserved positions for both type of distance calculation, if there is only one volume (ie limited set size)
+cons_m = None
 if slens > 1:
-    m = np.logical_not(np.all(inputseqmat == inputseqmat[0,:], axis = 0))
-    inputseqmat = inputseqmat.T[m].T
-
-del m
+    cons_m = np.logical_not(np.all(inputseqmat == inputseqmat[0,:], axis = 0))
+    inputseqmat = inputseqmat.T[cons_m].T
+del cons_m
 
 # update lengths and isolate counts
 slens = len(inseqs)
@@ -389,6 +400,8 @@ timing("# Distance calculation is finished.")
 mode = 'pw'
 if args.allcalled:
     mode = 'all'
+elif args.probabilistic:
+    mode = 'prob'
 
 method = "dist"
 subwdir = change2subdir(mode, method, suffix, wdir)
