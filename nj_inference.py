@@ -173,7 +173,7 @@ def dist_calc_all(s1, s2, i, S, no_compared_strains):
     return dist_t
 
 def change2subdir(mode, method, suffix, bdir):
-    if mode in ["all", "pw"]:
+    if mode in ["all", "pw", "prob"]:
         subdir = os.path.join(bdir, "{0}_{1}_{2}{3}".format(mode, method, ctime, suffix))
     else:
         subdir = os.path.join(bdir, "{0}_{1}{2}".format(method, ctime, suffix))
