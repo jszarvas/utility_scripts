@@ -324,7 +324,7 @@ m = None
 if args.allcalled:
     m = (inputseqmat != 0).all(axis=0)
 elif args.probabilistic:
-    known_frac = np.round_((inputseqmat != 0).sum(0) / vol_len, 5)
+    known_frac = np.round_((inputseqmat != 0).sum(0) / slens, 5)
     std_dev = np.std(known_frac, dtype=np.float64)
     mean_a = np.mean(known_frac, dtype=np.float64)
     threshold = mean_a - std_dev
