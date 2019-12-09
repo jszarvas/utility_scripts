@@ -9,6 +9,7 @@ from operator import itemgetter
 import gzip
 import math
 import subprocess
+import shutil
 from multiprocessing import cpu_count
 from joblib import Parallel, delayed
 
