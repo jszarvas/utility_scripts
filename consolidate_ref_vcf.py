@@ -152,7 +152,7 @@ with open(args.ofile, "w") as op:
 if args.concat:
     full_seq = "".join(concat)
     with open("{}.flat".format(args.ofile.rsplit(".",1)[0]), "w") as fop:
-        print(">{}".format(os.path.basename(args.ofile.split(".")[0])), file=fop)
+        print(">{}".format(sample_id), file=fop)
         for i in range(0, len(full_seq), 60):
             print(full_seq[i:i+60], file=fop)
 
