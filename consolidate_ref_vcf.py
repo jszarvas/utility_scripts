@@ -74,6 +74,11 @@ variant = None
 prev_end = 0
 #contig_len = 0
 lens = []
+# change id and description of reference record
+sample_id = ""
+sample_desc = "Aligned to {}"
+if len(vcf_i.samples) == 1:
+    sample_id = vcf_i.samples[0]
 for rec in records:
     if rec.id in vcf_i.seqnames:
         print(rec.id)
@@ -130,6 +135,8 @@ for rec in records:
             #print("Run out")
             contig.append(str(rec.seq[prev_end:]))
         rec.seq = Seq("".join(contig))
+        rec.id = sample_id
+        rec.description = sample_desc.format(rec.description)
         if args.concat:
             concat.append("".join(contig))
         print("Cons len:", len(rec.seq))
@@ -137,7 +144,6 @@ for rec in records:
         contig = []
         #contig_len = 0
         prev_end = 0
-        debug = True
 
 
 with open(args.ofile, "w") as op:
