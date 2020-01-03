@@ -39,6 +39,11 @@ parser.add_argument(
     dest="het",
     action="store_true",
     help='Add heterozygous SNPs')
+parser.add_argument(
+    '--fill',
+    dest="fill",
+    action="store_true",
+    help='Low confidence variants are replaced with bases of the reference')
 args = parser.parse_args()
 
 vcf_i = None
@@ -125,8 +130,12 @@ for rec in records:
                         # deletion gets filled with Ns
                         contig.append("n" * (len(variant.REF) - 1))
                 else:
-                    # low conf. variants are n-s
-                    contig.append("n" * len(variant.REF))
+                    if not args.fill:
+                        # low conf. variants are n-s
+                        contig.append("n" * len(variant.REF))
+                    else:
+                        # low conf. variants are filled from reference
+                        contig.append(variant.REF)
 
                 # read next variant
                 variant = next(vcf_i)
