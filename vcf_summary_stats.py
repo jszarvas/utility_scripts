@@ -6,6 +6,7 @@ import argparse
 from cyvcf2 import VCF
 import numpy as np
 from matplotlib import pyplot as plt
+import seaborn as sns
 
 PLH = 500.0
 N_BINS = 50
@@ -52,7 +53,7 @@ class VCF_stats:
         # make it into numpy
         npmat = np.array(self.stats[param])
         plt.rcParams["figure.figsize"] = [15, 4 * len(self.tests)]
-        plt.hist(np.extract(npmat != PLH, npmat), bins=N_BINS, density=True)
+        sns.distplot(np.extract(npmat != PLH, npmat), kde_kws={'bw':1})
         plt.title("{} {}".format(self.samplename, param))
         plt.savefig(pdf_path, format="pdf")
         return
@@ -61,12 +62,16 @@ class VCF_stats:
         pdf_path = "{}_{}.pdf".format(self.prefix, "BL")
         if self.filter:
             pdf_path = "{}_{}_PASS.pdf".format(self.prefix, "BL")
-        fig, axes = plt.subplots(len(self.tests), figsize=(15, 4 * len(self.tests)))
+        fig, axes = plt.subplots(int((len(vcf.tests)-1)/2)+1, 2, figsize=(8, 2 * len(vcf.tests)))
         fig.suptitle(self.samplename)
-        for i, p in enumerate(self.tests):
-            npmat = np.array(self.stats[p])
-            axes[i].set_title(p)
-            axes[i].hist(np.extract(npmat != PLH, npmat), bins=N_BINS, density=True)
+        for i, p in enumerate(vcf.tests):
+            r = int(i/2)
+            c = i % 2
+            npmat = np.array(vcf.stats[p])
+            axes[r][c].set_title(p)
+            sns.distplot(np.extract(npmat != PLH, npmat), kde_kws={'bw':1}, ax=axes[r][c])
+
+        plt.tight_layout(pad=4.0, h_pad=2.0, w_pad=1.0)
         fig.savefig(pdf_path, format="pdf")
         return
 
