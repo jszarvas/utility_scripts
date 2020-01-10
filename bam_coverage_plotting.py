@@ -60,7 +60,7 @@ if args.bam_file is not None and args.ref_bed is not None:
 
 if args.hist_file is not None:
     samplename = os.path.basename(args.hist_file).split(".")[0]
-    pdf_path = "{}_coverage.pdf".format(os.path.join(odir, samplename))
+    pdf_path = "{}_coverage.pdf".format(os.path.join(args.odir, samplename))
 
     hist_data = pd.read_table(args.hist_file, header=None, names=["feature", "start", "stop", "depth", "bases", "feature_size", "fraction"])
     hist_data_feat = hist_data[hist_data.feature != "all"]
@@ -70,7 +70,7 @@ if args.hist_file is not None:
     hist_data_feat.loc[hist_data_feat.frac_cumsum < 0,'frac_cumsum'] = 0
 
     sns.set_style("whitegrid")
-    plt.suptitle("2018-F7-71")
+    plt.suptitle(samplename)
     plt.xlabel("Depth of coverage")
     plt.ylabel("Fraction covered by at least this depth")
     sns.lineplot(x="depth", y="frac_cumsum", hue="feature", data=hist_data_feat[hist_data_feat.depth < MAXDEPTH])
