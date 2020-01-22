@@ -71,9 +71,9 @@ if args.hist_file is not None:
 
     sns.set_style("whitegrid")
     plt.suptitle(samplename)
+    sns.lineplot(x="depth", y="frac_cumsum", hue="feature", data=hist_data_feat[hist_data_feat.depth < MAXDEPTH])
     plt.xlabel("Depth of coverage")
     plt.ylabel("Fraction covered by at least this depth")
-    sns.lineplot(x="depth", y="frac_cumsum", hue="feature", data=hist_data_feat[hist_data_feat.depth < MAXDEPTH])
     plt.savefig(pdf_path, format="pdf")
 
     print("# PDF saved to {}".format(pdf_path))
