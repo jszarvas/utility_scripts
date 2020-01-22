@@ -113,8 +113,9 @@ for rec in records:
                             contig.append(variant.ALT[0][:len(variant.REF)])
                         # heterozygous snps
                         elif args.het and variant.is_snp:
-                            b = v.REF + v.ALT
-                            contig.append(ambigous_dna["".join(sorted(b))])
+                            b = variant.ALT + [variant.REF]
+                            contig.append(ambigous_dna["".join(sorted(b[:2]))])
+                            #print(variant.REF, variant.ALT, variant.POS, b[:2])
                         elif variant.is_indel:
                             contig.append(variant.ALT[0][0])
                             contig.append("n" * (len(variant.REF) - 1))
