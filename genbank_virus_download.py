@@ -13,9 +13,9 @@ import sqlite3
 import re
 import locale
 
-BATCH_SIZE = 100
+BATCH_SIZE = 50
 # set to US for the date parsing
-locale.setlocale(locale.LC_ALL, 'en_US.utf8')
+locale.setlocale(locale.LC_ALL, 'en_US.utf-8')
 
 def exiting(message):
     print(message, file=sys.stderr)
@@ -96,12 +96,12 @@ print(queries)
 if os.environ.get('NCBI_API_KEY') is not None:
     Entrez.api_key = os.environ.get('NCBI_API_KEY')
 else:
-    Entrez.api_key = "2a617493db26b60c5603b19744b4e60b3d08"
+    Entrez.api_key = ""
 
 if os.environ.get('NCBI_EMAIL') is not None:
     Entrez.email = os.environ.get('NCBI_EMAIL')
 else:
-    Entrez.email = "jusz@dtu.dk"
+    Entrez.email = ""
 
 for query in queries:
     query_str = query[1]
@@ -122,11 +122,11 @@ for query in queries:
     batches = [acc[x:x + BATCH_SIZE] for x in range(0, n_acc, BATCH_SIZE)]
 
     for batch in batches:
-        sample_insert = []
-        metadata_insert = []
         acc_str = ",".join(batch)
         done = False
         while not done:
+            sample_insert = []
+            metadata_insert = []
             try:
                 fetch_handle = Entrez.efetch(db="nuccore", id=acc_str, rettype="gb", retmode="text")
                 records = SeqIO.parse(fetch_handle, "gb")
@@ -140,12 +140,12 @@ for query in queries:
                             if f.qualifiers.get('country') is not None:
                                 country = f.qualifiers.get('country')[0]
                             sdate = datetime.strftime(datetime.strptime(r.annotations['date'], "%d-%b-%Y"), "%Y-%m-%d")
-                            if f.qualifiers.get('collection_date') is not None:
-                                sdate = f.qualifiers.get('collection_date')
-                            metadata_insert.append((r.id, r.description, sdate, country))
                             metadata = {'accession': r.id,
-                                  'description': r.description,
-                                  'submit_date': sdate }
+                            'description': r.description,
+                            'submit_date': sdate }
+                            if f.qualifiers.get('collection_date') is not None:
+                                sdate = str(f.qualifiers.get('collection_date')[0])
+                            metadata_insert.append((r.id, r.description, sdate, country))
                             metadata.update(f.qualifiers)
                             with open(os.path.join(odir, "{}.json".format(r.id)), "w") as op:
                                 json.dump(metadata, op)
@@ -162,13 +162,16 @@ for query in queries:
                     SeqIO.write(r, fasta_path, "fasta")
                     sample_insert.append((r.id, fasta_path, extracted_fasta_path))
                 fetch_handle.close()
+
                 done = True
+
+                # insert to db
+                cur.executemany('''INSERT OR REPLACE INTO samples (accession, path, feature_path) VALUES (?,?,?)''', sample_insert)
+                cur.executemany('''INSERT OR REPLACE INTO metadata (accession, description, submit_date, country) VALUES (?,?,?,?)''', metadata_insert)
+                conn.commit()
+
             except ConnectionResetError:
                 print("Sleep 120sec on connection reset")
                 time.sleep(120)
 
-        # insert to db
-        cur.executemany('''INSERT OR REPLACE INTO samples (accession, path, feature_path) VALUES (?,?,?)''', sample_insert)
-        cur.executemany('''INSERT OR REPLACE INTO metadata (accession, description, submit_date, country) VALUES (?,?,?,?)''', metadata_insert)
-        conn.commit()
 conn.close()
