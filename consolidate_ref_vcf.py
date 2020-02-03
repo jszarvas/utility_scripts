@@ -118,7 +118,7 @@ for rec in records:
                             #print(variant.REF, variant.ALT, variant.POS, b[:2])
                         elif variant.is_indel:
                             contig.append(variant.ALT[0][0])
-                            contig.append("n" * (len(variant.REF) - 1))
+                            contig.append("-" * (len(variant.REF) - 1))
                             #print(contig[-2], contig[-1])
                             #print(len("".join(contig)), contig_len,  prev_end, variant.start, variant.end, variant.REF, variant.ALT, variant.genotypes, variant.is_deletion, variant.is_sv, variant.is_indel,  variant.FILTER)
                         else:
@@ -129,7 +129,7 @@ for rec in records:
                         contig.append(variant.ALT[0][0])
                         #print(contig[-1])
                         # deletion gets filled with Ns
-                        contig.append("n" * (len(variant.REF) - 1))
+                        contig.append("-" * (len(variant.REF) - 1))
                 else:
                     if not args.fill:
                         # low conf. variants are n-s
