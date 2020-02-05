@@ -46,6 +46,8 @@ if args.bam_file is not None and args.ref_bed is not None:
     if args.bedtools_path is None:
         if shutil.which("bedtools") is not None:
             args.bedtools_path = shutil.which("bedtools")
+        else:
+            sys.exit("Path to bedtools binary is needed")
     else:
         sys.exit("Path to bedtools binary is needed")
 
