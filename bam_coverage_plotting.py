@@ -52,7 +52,7 @@ if args.bam_file is not None and args.ref_bed is not None:
     #bedtools coverage -a ${REFERENCE} -b ${F} -sorted -hist >  ${S}.bam.hist.txt
 
     args.hist_file = "{}.hist.txt".format(args.bam_file)
-    cmd = "{0} coverage -a {1} -b {2} -sorted -hist > {2}.hist.txt".format(args.bedtools_path, args.ref_bed, args.bam_file)
+    cmd = "{0} coverage -a {1} -b {2} -sorted -hist".format(args.bedtools_path, args.ref_bed, args.bam_file)
     with open(args.hist_file, "w") as ofp:
         ex = subprocess.run(shlex.split(cmd), stdout=ofp)
         if ex.returncode != 0:
