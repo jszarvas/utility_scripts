@@ -107,9 +107,9 @@ for rec in records:
                 # passed VariantFiltration, and not deletion or struct var
                 if variant.FILTER is None:
                     if not variant.is_deletion and not variant.is_sv:
-                        # homozygous snps and insertions
+                        # homozygous snps and insertions -- 1:, 1/1:
                         # insertion A -> ACT gets trimmed
-                        if sum(variant.genotypes[0][:2]) == 2:
+                        if variant.genotypes[0][0] != 0 and len(set(variant.genotypes[0][:-1])) == 1:
                             contig.append(variant.ALT[0][:len(variant.REF)])
                         # heterozygous snps
                         elif args.het and variant.is_snp:
