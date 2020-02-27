@@ -72,7 +72,7 @@ with open(args.vcf_list, "r") as fp:
                         if variant.genotypes[0][0] == 0 or variant.genotypes[0][-2] == 2:
                             # is the variant outside our current window?
                             # change block
-                            if variant.start >= window[contig][i]:
+                            while (variant.start >= window[contig][i]):
                                 stats_per_window[sample_id].append(hetcount)
                                 i += 1
                                 hetcount = 0
@@ -82,6 +82,8 @@ with open(args.vcf_list, "r") as fp:
                 # change contig
                 stats_per_window[sample_id].append(hetcount)
                 hetcount = 0
+                for j in range(i, len(window[contig])):
+                    stats_per_window[sample_id].append(hetcount)
             except StopIteration:
                 stats_per_window[sample_id].append(hetcount)
                 hetcount = 0
