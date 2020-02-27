@@ -82,13 +82,13 @@ with open(args.vcf_list, "r") as fp:
                 # change contig
                 stats_per_window[sample_id].append(hetcount)
                 hetcount = 0
-                for j in range(i, len(window[contig])):
+                for j in range(i+1, len(window[contig])):
                     stats_per_window[sample_id].append(hetcount)
             except StopIteration:
                 stats_per_window[sample_id].append(hetcount)
                 hetcount = 0
                 # fill rest of blocks with zero
-                for j in range(i, len(window[contig])):
+                for j in range(i+1, len(window[contig])):
                     stats_per_window[sample_id].append(hetcount)
 
 
