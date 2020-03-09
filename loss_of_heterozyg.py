@@ -29,6 +29,11 @@ parser.add_argument(
     default=10000,
     type=int,
     help='Window size, default 10kbp')
+parser.add_argument(
+    '-a',
+    dest="all",
+    action="store_true",
+    help='Count all variants per window instead of heterozygous variants')
 args = parser.parse_args()
 
 # chrom1 : []
@@ -69,7 +74,7 @@ with open(args.vcf_list, "r") as fp:
                     # PASS
                     if variant.FILTER is None:
                         # count the heterozygous 0/1, 1/2
-                        if variant.genotypes[0][0] == 0 or variant.genotypes[0][-2] == 2:
+                        if variant.genotypes[0][0] == 0 or variant.genotypes[0][-2] == 2 or args.all:
                             # is the variant outside our current window?
                             # change block
                             while (variant.start >= window[contig][i]):
