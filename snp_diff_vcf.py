@@ -164,7 +164,7 @@ def create_vcf(ref, ind, mask):
 
     for j in range(nchrom):
         for k in range(clens[j]):
-            if reference[j][k] != inputseq[j][k] and mask[j][k]:
+            if reference[j][k].upper() != inputseq[j][k].upper() and mask[j][k]:
                 if args.context:
                     for c in range(-5,0,1):
                         vcffile.append("{0}\t{1}\t.\t{2}\t{3}\t.\tPASS\t.".format("Chromosome", k+1+c, reference[j][k+c], inputseq[j][k+c]))
@@ -184,10 +184,10 @@ def encode_seq_pw(strain):
    for j in range(len(clens)):
       for i in range(clens[j]):
          try:
-            encodedinput[j][i] = nuc2num[strain[j][i]]
+            encodedinput[j][i] = nuc2num[strain[j][i].upper()]
          except KeyError:
             non_nuc_mask[j][i] = False
-   print(np.sum(non_nuc_mask[0]))
+   print("non-masked positions:", np.sum(non_nuc_mask[0]))
    return encodedinput, non_nuc_mask
 
 def encode_seq_all(strain):
@@ -254,17 +254,19 @@ refseqs = []
 refseqlist = []
 
 if listbased:
-   with open(args.old) as f:
-      for l in f:
-         # First strain should be the the template
-         l = l.strip()
-         if l == "":
-            next #avoid empty line
-         fp = os.path.join(args.odir, l)
-         if os.path.exists(fp):
-            refseqlist.append(l)
-            entries = list(zip(*[[seq, name, desc] for seq, name, desc in SeqsFromFile(fp)]))
-            refseqs.append(list(entries[0]))
+    with open(args.old) as f:
+        for l in f:
+            # First strain should be the the template
+            l = l.strip()
+            if l == "":
+                next #avoid empty line
+            fp = os.path.join(args.odir, l)
+            if os.path.exists(fp) and os.path.getsize(fp) > 0:
+                refseqlist.append(l)
+                entries = list(zip(*[[seq, name, desc] for seq, name, desc in SeqsFromFile(fp)]))
+                refseqs.append(list(entries[0]))
+            else:
+                print(fp)
 else:
    entries = list(zip(*[[seq, name, desc] for seq, name, desc in SeqsFromFile(args.ref)]))
    refseqlist.append(os.path.basename(args.ref))
