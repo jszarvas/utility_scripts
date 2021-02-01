@@ -167,11 +167,15 @@ def create_vcf(ref, ind, mask):
             if reference[j][k].upper() != inputseq[j][k].upper() and mask[j][k]:
                 if args.context:
                     for c in range(-5,0,1):
-                        vcffile.append("{0}\t{1}\t.\t{2}\t{3}\t.\tPASS\t.".format("Chromosome", k+1+c, reference[j][k+c], inputseq[j][k+c]))
+                        context_pos = k+c
+                        if context_pos > -1:
+                            vcffile.append("{0}\t{1}\t.\t{2}\t{3}\t.\tPASS\t.".format("Chromosome", context_pos + 1, reference[j][context_pos], inputseq[j][context_pos]))
                 vcffile.append("{0}\t{1}\t.\t{2}\t{3}\t.\tPASS\t.".format("Chromosome", k+1, reference[j][k], inputseq[j][k]))
                 if args.context:
                     for c in range(1,6):
-                        vcffile.append("{0}\t{1}\t.\t{2}\t{3}\t.\tPASS\t.".format("Chromosome", k+1+c, reference[j][k+c], inputseq[j][k+c]))
+                        context_pos = k+c
+                        if context_pos < clens[j]:
+                            vcffile.append("{0}\t{1}\t.\t{2}\t{3}\t.\tPASS\t.".format("Chromosome", context_pos + 1, reference[j][context_pos], inputseq[j][context_pos]))
     if args.context:
         inputseqname += ".context"
     with open(os.path.join(args.odir, inputseqname + ".vcf"), "w") as of:
@@ -213,6 +217,7 @@ parser.add_argument("-ql", dest="new", help="list of query sequences", metavar="
 parser.add_argument("-r", dest="ref", help="reference")
 parser.add_argument("-q", dest="query", help="query")
 parser.add_argument("-o", "--outputdir", dest="odir", help="write to DIR", metavar="DIR")
+parser.add_argument("-u", "--unknown", dest="unknown", action="store_true", help="Output also the unknown positions")
 parser.add_argument("-c", "--context", dest="context", action="store_true", help="Print 5 pos around snp")
 parser.add_argument("-a", "--allcalled", dest="allcalled", action="store_true", help="Only use positions called in all strains")
 args = parser.parse_args()
@@ -298,6 +303,9 @@ nuc2num = {
    'Y' : 9,
    'K' : 10
 }
+
+if args.unknown:
+    nuc2num['N'] = 11
 
 clens = [len(chrom) for chrom in refseqs[0]] # Length of chromosomes
 tot_len = sum(clens) #total length of sequences, for the pw calc
