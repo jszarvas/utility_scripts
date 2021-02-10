@@ -101,6 +101,9 @@ class SAMPLE_ALN:
                             self.indel_type = "err_insert"
                             self.process_variant(i)
                             self.shift += i - self.indel_start - 1
+                        else:
+                            # mismatch
+                            self.process_variant(i)
                     if self.indel_type != "mask":
                         self.indel_type = "mask"
                         self.indel_start = i
@@ -120,13 +123,8 @@ class SAMPLE_ALN:
                     if self.indel_start is None:
                         self.indel_start = i - 1
                         self.indel_type = "insert"
-                    elif self.indel_type == "deletion":
-                        # not a deletion any more, switch type
-                        self.process_variant(i)
-                        self.indel_start = i - 1
-                        self.indel_type = "insert"
-                    elif self.indel_type == "mask":
-                        # insert in a masked region
+                    elif self.indel_type != "insert":
+                        # not a deletion or mask or mismatch any more, switch type
                         self.process_variant(i)
                         self.indel_start = i - 1
                         self.indel_type = "insert"
@@ -138,31 +136,29 @@ class SAMPLE_ALN:
                     if self.indel_start is None:
                         self.indel_start = i
                         self.indel_type = "deletion"
-                    elif self.indel_type == "insert":
-                        # not an insert any more, switch type
+                    elif self.indel_type != "deletion":
+                        # not a deletion any more, switch type
                         self.process_variant(i)
-                        self.shift += i - self.indel_start - 1
+                        # shift if it was insert
+                        if self.indel_type == "insert":
+                            self.shift += i - self.indel_start - 1
                         self.indel_start = i
                         self.indel_type = "deletion"
                     else:
                         pass
                 else:
-                    if self.indel_start is not None:
-                        # indel ended on prev. pos
+                    # mismatch
+                    if self.indel_start is None:
+                        self.indel_type = "mismatch"
+                        self.indel_start = i
+                    elif self.indel_type != "mismatch":
                         self.process_variant(i)
                         if self.indel_type == "insert":
                             self.shift += i - self.indel_start - 1
-                        self.indel_type = None
-                        self.indel_start = None
-                    # currently mismatch
-                    self.indel_type = "mismatch"
-                    self.indel_start = i
-                    self.process_variant(i)
-                    self.indel_type = None
             else:
-                # not a mismatch
+                # not a variant
                 if self.indel_start is not None:
-                    # indel ended on prev. pos
+                    # variant ended on prev. pos
                     self.process_variant(i)
                     if self.indel_type == "insert":
                         self.shift += i - self.indel_start - 1
@@ -195,10 +191,10 @@ class SAMPLE_ALN:
             self.indel_type = None
 
         if self.indel_type == "mismatch":
-            self.add_vcf_line(ref_pos, self.subject[self.indel_start], self.template[self.indel_start])
+            self.add_vcf_line(ref_pos, self.subject[self.indel_start:pos], self.template[self.indel_start:pos])
         elif self.indel_type == "deletion":
             # previous nucleotide is shown
-            self.add_vcf_line(ref_pos-1, self.template[self.indel_start-1] , self.template[self.indel_start-1:pos])
+            self.add_vcf_line(ref_pos-1, self.subject[self.indel_start-1] , self.template[self.indel_start-1:pos])
         elif self.indel_type == "insert":
             self.add_vcf_line(ref_pos, self.subject[self.indel_start:pos], self.template[self.indel_start])
         else:
@@ -256,11 +252,11 @@ if os.path.exists(args.aln_file) and os.path.getsize(args.aln_file) > 0:
     if not sample.coverage_check():
         # check number of gaps in query
         print("#", sample.samplename, "too short")
-        continue
-    sample.create_vcf_header(reference)
-    sample.process_aln(gff_cds, gff_mask)
+    else:
+        sample.create_vcf_header(reference)
+        sample.process_aln(gff_cds, gff_mask)
 
-    with open("{}.vcf".format(os.path.join(args.odir, sample.samplename)), "w") as of:
-        print("\n".join(sample.vcf_content), file=of)
+        with open("{}.vcf".format(os.path.join(args.odir, sample.samplename)), "w") as of:
+            print("\n".join(sample.vcf_content), file=of)
 else:
     print("Error: File not found {}".format(args.aln_file), file=sys.stderr)
