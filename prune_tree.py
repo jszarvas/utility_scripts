@@ -63,5 +63,4 @@ tree.prune(kept_nodes)
 tree.write(format=0, outfile=f"{args.ofix}.nwk")
 
 print(f"# Tree pruned. Time used: {int(time.time()-t0)} seconds", file=sys.stdout)
-
 sys.exit(0)
