@@ -42,7 +42,7 @@ tree = Tree(args.treefile)
 kept_nodes = []
 for node in tree.traverse():
     if node.name:
-        split_name = node.name .split(" ")
+        split_name = node.name.split(" ")
         if len(split_name) > 1:
             kept_name = []
             for acc in split_name:
