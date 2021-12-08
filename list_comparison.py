@@ -4,7 +4,7 @@ import sys
 import os
 
 if len(sys.argv) < 2:
-    print("Usage: program <A> <B> <a:A-B|b:union|c:difference>")
+    print("Usage: program <A> <B> <a:A-B|b:intersect|c:difference|d:union>")
     sys.exit()
 
 Alst = []
@@ -35,5 +35,11 @@ elif sys.argv[3] == "c":
         if item not in Alst:
             diff.append(item)
     print("\n".join(diff))
+elif sys.argv[3] == "d":
+    for item in Alst:
+        print(item)
+    for item in Blst:
+        if item not in Alst:
+            print(item)
 else:
     print("Not valid choice")
