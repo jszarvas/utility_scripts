@@ -12,7 +12,6 @@ import matplotlib
 matplotlib.use("Agg")
 from matplotlib import pyplot as plt
 import seaborn as sns
-from Bio import SeqIO
 
 MAXDEPTH = 100
 
@@ -33,13 +32,15 @@ parser.add_argument(
     dest="odir",
     help='Output pdf to dir')
 parser.add_argument(
-    '-r',
-    dest="ref_bed",
-    help='Bed file with features for bedtools coverage')
-parser.add_argument(
     '-e',
     dest="bedtools_path",
     help='Bedtools executable path')
+parser.add_argument(
+    '-l',
+    dest="minlength",
+    default=2000,
+    type=int,
+    help='Min contig size to consider, bp')
 args = parser.parse_args()
 
 if args.bam_file is not None and args.ref_bed is not None:
@@ -51,10 +52,10 @@ if args.bam_file is not None and args.ref_bed is not None:
     else:
         sys.exit("Path to bedtools binary is needed")
 
-    #bedtools coverage -a ${REFERENCE} -b ${F} -sorted -hist >  ${S}.bam.hist.txt
+    #bedtools genomecov -ibam ${F} >  ${S}.bam.hist.txt
 
     args.hist_file = "{}.hist.txt".format(args.bam_file)
-    cmd = "{0} coverage -a {1} -b {2} -sorted -hist".format(args.bedtools_path, args.ref_bed, args.bam_file)
+    cmd = "{0} genomecov -ibam {1}".format(args.bedtools_path, args.bam_file)
     with open(args.hist_file, "w") as ofp:
         ex = subprocess.run(shlex.split(cmd), stdout=ofp)
         if ex.returncode != 0:
@@ -64,18 +65,23 @@ if args.hist_file is not None:
     samplename = os.path.basename(args.hist_file).split(".")[0]
     pdf_path = "{}_coverage.pdf".format(os.path.join(args.odir, samplename))
 
-    hist_data = pd.read_table(args.hist_file, header=None, names=["feature", "start", "stop", "depth", "bases", "feature_size", "fraction"])
+    hist_data = pd.read_table(args.hist_file, header=None, names=["feature", "depth", "bases", "feature_size", "fraction"])
     hist_data_feat = hist_data[hist_data.feature != "all"]
     # 1 - cumsum to show the fraction that is covered with at least that depth
     hist_data_feat['frac_cumsum'] = hist_data_feat.groupby(['feature'])['fraction'].apply(lambda x: 1 - x.cumsum())
     # remove cumsum values on the 1 bases long high depths
     hist_data_feat.loc[hist_data_feat.frac_cumsum < 0,'frac_cumsum'] = 0
 
-    sns.set_style("whitegrid")
+    sns.set(style="whitegrid", rc={"xtick.bottom" : True, "ytick.left" : True})
     plt.suptitle(samplename)
-    sns.lineplot(x="depth", y="frac_cumsum", hue="feature", data=hist_data_feat[hist_data_feat.depth < MAXDEPTH])
+    ax = sns.lineplot(x="depth", y="frac_cumsum", hue="feature", data=hist_data_feat[hist_data_feat.feature_size > args.minlength])
+    plt.xscale('log')
+    formatter = plt.ScalarFormatter()
+    formatter.set_scientific(False)
+    ax.xaxis.set_major_formatter(plt.ScalarFormatter())
     plt.xlabel("Depth of coverage")
     plt.ylabel("Fraction covered by at least this depth")
+    plt.legend([],[], frameon=False)
     plt.savefig(pdf_path, format="pdf")
 
     print("# PDF saved to {}".format(pdf_path))
