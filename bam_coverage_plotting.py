@@ -43,7 +43,7 @@ parser.add_argument(
     help='Min contig size to consider, bp')
 args = parser.parse_args()
 
-if args.bam_file is not None and args.ref_bed is not None:
+if args.bam_file is not None:
     if args.bedtools_path is None:
         if shutil.which("bedtools") is not None:
             args.bedtools_path = shutil.which("bedtools")
