@@ -73,8 +73,8 @@ if args.hist_file is not None:
     hist_data_feat.loc[hist_data_feat.frac_cumsum < 0,'frac_cumsum'] = 0
 
     sns.set(style="whitegrid", rc={"xtick.bottom" : True, "ytick.left" : True})
-    plt.suptitle(samplename)
-    ax = sns.lineplot(x="depth", y="frac_cumsum", hue="feature", data=hist_data_feat[hist_data_feat.feature_size > args.minlength])
+    plt.suptitle(f"{samplename} (min. {args.minlength}bp)")
+    ax = sns.lineplot(x="depth", y="frac_cumsum", hue="feature", data=hist_data_feat[hist_data_feat.feature_size >= args.minlength], alpha=0.6)
     plt.xscale('log')
     formatter = plt.ScalarFormatter()
     formatter.set_scientific(False)
