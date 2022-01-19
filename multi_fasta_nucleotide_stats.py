@@ -21,10 +21,16 @@ parser.add_argument(
     help='Input multifasta')
 parser.add_argument(
     '-t',
-    dest="filter",
+    dest="threshold",
     default=100.0,
     type=float,
     help='Optional upper N-threshold for printing stats')
+parser.add_argument(
+    '-f',
+    dest="filter",
+    default=0.0,
+    type=float,
+    help='Optional lower N-threshold for printing stats')
 parser.add_argument(
     '-a',
     dest="ambig",
@@ -59,6 +65,6 @@ for rec in seq_iter:
 
     total = sum(nucs.values())
     nucs_perc = [str(round(nucs.get(key)/float(total) * 100 , 3)) for key in iupac[:b]]
-    if float(nucs_perc[-1]) < args.filter:
+    if float(nucs_perc[-1]) < args.threshold and float(nucs_perc[-1]) >= args.filter:
         print(rec.description, "\t".join(nucs_perc), total, sep="\t")
     nucs.update(init_nucs)
