@@ -115,7 +115,6 @@ if args.vcf_file is not None and os.path.exists(args.vcf_file):
     sys.exit(0)
 
 elif args.vcf_list is not None and os.path.exists(args.vcf_list):
-    sys.exit("No input")
     with open(args.vcf_list, "r") as fp:
         for line in fp:
             vcf = VCF_stats(args.params, args.odir, line.strip())
