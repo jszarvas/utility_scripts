@@ -7,10 +7,6 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-if (len(sys.argv) == 1):
-    print("program <multi fasta> <output path> <filter word1> <opt filter word2>")
-    sys.exit(1)
-
 parser = argparse.ArgumentParser(
     description='Remove entries from multi-fasta file by word filters')
 parser.add_argument(
