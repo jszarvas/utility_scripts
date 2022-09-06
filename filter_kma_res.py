@@ -105,7 +105,7 @@ if not df_pass.empty:
             efetch_reply = Entrez.efetch(db="Nuccore", id=recid, retmode="xml")
             efetch_record = Entrez.read(efetch_reply)
             #print(efetch_record[0]['GBSeq_organism'])
-            esearch_tax_reply = Entrez.esearch(db="Taxonomy", term=efetch_record[0]['GBSeq_organism'])
+            esearch_tax_reply = Entrez.esearch(db="Taxonomy", term="{}[All names]".format(efetch_record[0]['GBSeq_organism']))
             esearch_tax_record = Entrez.read(esearch_tax_reply)
             efetch_tax_reply = Entrez.efetch(db="Taxonomy", id=esearch_tax_record['IdList'][0], retmode="xml")
             efetch_tax_record = Entrez.read(efetch_tax_reply)
@@ -139,10 +139,11 @@ if not df_pass.empty:
 
     # data = {'col_1': [3, 2, 1, 0], 'col_2': ['a', 'b', 'c', 'd']}
     # pd.DataFrame.from_dict(data)
-    for rec in taxonomy:
-        for k in taxonomy_data.keys():
-            taxonomy_data[k].append(rec.get(k))
-    df_pass = df_pass.merge(pd.DataFrame.from_dict(taxonomy_data))
+    if taxonomy:
+        for rec in taxonomy:
+            for k in taxonomy_data.keys():
+                taxonomy_data[k].append(rec.get(k))
+        df_pass = df_pass.merge(pd.DataFrame.from_dict(taxonomy_data), how="left")
 
 if args.opt_suffix is None:
     args.opt_suffix = os.path.basename(args.input_res).replace("res", "filter.tsv")
