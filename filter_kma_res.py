@@ -9,6 +9,7 @@ from Bio import Entrez
 from time import sleep
 from pandas.core.common import SettingWithCopyWarning
 import warnings
+from urllib.error import HTTPError
 
 warnings.simplefilter(action="ignore", category=SettingWithCopyWarning)
 
@@ -70,6 +71,11 @@ parser.add_argument(
     default=-0.8670195,
     help="Coefficient b, in the a * exp(b * x) equation"
 )
+parser.add_argument(
+    '--split_on',
+    dest="split_pattern",
+    default=" ",
+    help='Pattern to split the reference name on for accession')
 args = parser.parse_args()
 
 # read res file
@@ -95,22 +101,29 @@ taxonomy = []
 Entrez.email = os.environ.get("NCBI_EMAIL")
 Entrez.api_key = os.environ.get("NCBI_API_KEY")
 if not df_pass.empty:
-    df_pass.loc[:,"Accession"] = df_pass["#Template"].str.split(" ").str.get(0)
+    df_pass.loc[:,"Accession"] = df_pass["#Template"].str.split(args.split_pattern).str.get(0).str.rsplit(pat="_", n=1).str.get(0)
     batch = 8
     for i in range(0,df_pass.shape[0], batch):
-        query_str = "[Accession] OR ".join(df_pass["#Template"].str.split(" ").str.get(0)[i:i+batch])
+        query_str = "[Accession] OR ".join(df_pass.loc[:,"Accession"][i:i+batch])
+        query_str = query_str + "[Accession]"
+        print(query_str)
         esearch_reply = Entrez.esearch(db="Nuccore", term=query_str)
         esearch_record = Entrez.read(esearch_reply)
+        #print(esearch_record)
         for recid in esearch_record['IdList']:
             efetch_reply = Entrez.efetch(db="Nuccore", id=recid, retmode="xml")
             efetch_record = Entrez.read(efetch_reply)
             #print(efetch_record[0]['GBSeq_organism'])
             esearch_tax_reply = Entrez.esearch(db="Taxonomy", term="{}[All names]".format(efetch_record[0]['GBSeq_organism']))
             esearch_tax_record = Entrez.read(esearch_tax_reply)
-            efetch_tax_reply = Entrez.efetch(db="Taxonomy", id=esearch_tax_record['IdList'][0], retmode="xml")
+            try:
+                efetch_tax_reply = Entrez.efetch(db="Taxonomy", id=esearch_tax_record['IdList'][0], retmode="xml")
+            except HTTPError:
+                sleep(1)
+                efetch_tax_reply = Entrez.efetch(db="Taxonomy", id=esearch_tax_record['IdList'][0], retmode="xml")
             efetch_tax_record = Entrez.read(efetch_tax_reply)
             #print(efetch_tax_record[0]['Lineage'])
-            taxonomy.append({'Accession': efetch_record[0]['GBSeq_accession-version'], 'TaxId': efetch_tax_record[0]['TaxId'],
+            taxonomy.append({'Accession': efetch_record[0]['GBSeq_accession-version'].rsplit(".", 1)[0], 'TaxId': efetch_tax_record[0]['TaxId'],
                 efetch_tax_record[0]['Rank']: efetch_tax_record[0]['ScientificName'],
                 'Lineage': efetch_tax_record[0]['Lineage'],
                 'TaxNote': "",
@@ -121,7 +134,7 @@ if not df_pass.empty:
                     if taxonomy[-1].get(tax_level['Rank']) is None:
                         taxonomy[-1][tax_level['Rank']] = tax_level['ScientificName']
             parent_tax = efetch_tax_record[0]['Lineage'].split("; ")[-1]
-            if taxonomy[-1]['genus'] and parent_tax != taxonomy[-1]['genus']:
+            if taxonomy[-1].get('genus') is not None and parent_tax != taxonomy[-1]['genus']:
                 if parent_tax == taxonomy[-1]['species']:
                     taxonomy[-1]['TaxNote'] = taxonomy[-1].get(efetch_tax_record[0]['Rank'])
                 elif parent_tax.split(" ")[0] == "unclassified":
@@ -139,19 +152,22 @@ if not df_pass.empty:
 
     # data = {'col_1': [3, 2, 1, 0], 'col_2': ['a', 'b', 'c', 'd']}
     # pd.DataFrame.from_dict(data)
+    #print(taxonomy)
     if taxonomy:
         for rec in taxonomy:
             for k in taxonomy_data.keys():
                 taxonomy_data[k].append(rec.get(k))
         df_pass = df_pass.merge(pd.DataFrame.from_dict(taxonomy_data), how="left")
-
-if args.opt_suffix is None:
-    args.opt_suffix = os.path.basename(args.input_res).replace("res", "filter.tsv")
-output_filename = os.path.join(args.output_folder, args.opt_suffix)
-with open(output_filename, "w") as op:
-    arg_list = ["##", sys.argv[0]]
-    arg_list += ["{0}={1}".format(k,v) for k,v in sorted(vars(args).items())]
-    print(" ".join(arg_list), file=op)
-    if args.use_model:
-        print(f"## (-1 * {args.coeff_a} * np.exp({args.coeff_b} * Depth * (1 / {args.min_frac})) + 1) * 100 * {args.min_frac}", file=op)
-df_pass.to_csv(path_or_buf=output_filename, sep='\t', mode='a', index=False)
+    if args.opt_suffix is None:
+        args.opt_suffix = os.path.basename(args.input_res).replace("res", "filter.tsv")
+    output_filename = os.path.join(args.output_folder, args.opt_suffix)
+    with open(output_filename, "w") as op:
+        arg_list = ["##", sys.argv[0]]
+        arg_list += ["{0}={1}".format(k,v) for k,v in sorted(vars(args).items())]
+        print(" ".join(arg_list), file=op)
+        if args.use_model:
+            print(f"## (-1 * {args.coeff_a} * np.exp({args.coeff_b} * Depth * (1 / {args.min_frac})) + 1) * 100 * {args.min_frac}", file=op)
+    df_pass.to_csv(path_or_buf=output_filename, sep='\t', mode='a', index=False)
+    print(f"Filtered tsv written to {output_filename}", file=sys.stderr)
+else:
+    print(f"No hits passed the filter for {args.input_res}", file=sys.stderr)
