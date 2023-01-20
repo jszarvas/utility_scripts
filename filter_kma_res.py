@@ -76,13 +76,23 @@ parser.add_argument(
     dest="split_pattern",
     default=" ",
     help='Pattern to split the reference name on for accession')
+parser.add_argument(
+    '--split_version',
+    dest="version_pattern",
+    default=".",
+    help='Pattern to split the accession to remove version')
+parser.add_argument(
+    '--no_taxonomy',
+    dest="no_taxonomy",
+    action="store_true",
+    help="No taxonomy lookup")
 args = parser.parse_args()
 
 # read res file
 df_res_raw = pd.read_csv(args.input_res, delimiter='\t')
 
 # filter on min coverage and min depth
-df_min_filter = df_res_raw[(df_res_raw["Template_Coverage"] > args.min_cov) & (df_res_raw["Depth"] > args.min_depth)]
+df_min_filter = df_res_raw[(df_res_raw["Template_Coverage"] >= args.min_cov) & (df_res_raw["Depth"] >= args.min_depth)]
 
 #df_min_filter = df_res_raw[(df_res_raw["Template_Coverage"] > 10.0) & (df_res_raw["Depth"] > 0.20)]
 
@@ -101,63 +111,69 @@ taxonomy = []
 Entrez.email = os.environ.get("NCBI_EMAIL")
 Entrez.api_key = os.environ.get("NCBI_API_KEY")
 if not df_pass.empty:
-    df_pass.loc[:,"Accession"] = df_pass["#Template"].str.split(args.split_pattern).str.get(0).str.rsplit(pat="_", n=1).str.get(0)
-    batch = 8
-    for i in range(0,df_pass.shape[0], batch):
-        query_str = "[Accession] OR ".join(df_pass.loc[:,"Accession"][i:i+batch])
-        query_str = query_str + "[Accession]"
-        print(query_str)
-        esearch_reply = Entrez.esearch(db="Nuccore", term=query_str)
-        esearch_record = Entrez.read(esearch_reply)
-        #print(esearch_record)
-        for recid in esearch_record['IdList']:
-            efetch_reply = Entrez.efetch(db="Nuccore", id=recid, retmode="xml")
-            efetch_record = Entrez.read(efetch_reply)
-            #print(efetch_record[0]['GBSeq_organism'])
-            esearch_tax_reply = Entrez.esearch(db="Taxonomy", term="{}[All names]".format(efetch_record[0]['GBSeq_organism']))
-            esearch_tax_record = Entrez.read(esearch_tax_reply)
-            try:
-                efetch_tax_reply = Entrez.efetch(db="Taxonomy", id=esearch_tax_record['IdList'][0], retmode="xml")
-            except HTTPError:
-                sleep(1)
-                efetch_tax_reply = Entrez.efetch(db="Taxonomy", id=esearch_tax_record['IdList'][0], retmode="xml")
-            efetch_tax_record = Entrez.read(efetch_tax_reply)
-            #print(efetch_tax_record[0]['Lineage'])
-            taxonomy.append({'Accession': efetch_record[0]['GBSeq_accession-version'].rsplit(".", 1)[0], 'TaxId': efetch_tax_record[0]['TaxId'],
-                efetch_tax_record[0]['Rank']: efetch_tax_record[0]['ScientificName'],
-                'Lineage': efetch_tax_record[0]['Lineage'],
-                'TaxNote': "",
-                'ParentTaxNoRank': ""
-                })
-            for tax_level in efetch_tax_record[0]['LineageEx']:
-                if tax_level['Rank'] in ['superkingdom', 'phylum', 'family', 'genus', 'species']:
-                    if taxonomy[-1].get(tax_level['Rank']) is None:
-                        taxonomy[-1][tax_level['Rank']] = tax_level['ScientificName']
-            parent_tax = efetch_tax_record[0]['Lineage'].split("; ")[-1]
-            if taxonomy[-1].get('genus') is not None and parent_tax != taxonomy[-1]['genus']:
-                if parent_tax == taxonomy[-1]['species']:
-                    taxonomy[-1]['TaxNote'] = taxonomy[-1].get(efetch_tax_record[0]['Rank'])
-                elif parent_tax.split(" ")[0] == "unclassified":
-                    taxonomy[-1]['TaxNote'] = parent_tax
-                else:
-                    taxonomy[-1]['ParentTaxNoRank'] = parent_tax
-        sleep(1)
+    df_pass.loc[:,"Accession"] = df_pass["#Template"].str.split(args.split_pattern).str.get(0).str.rsplit(pat=args.version_pattern, n=1).str.get(0)
+    if not args.no_taxonomy:
+        batch = 4
+        for i in range(0,df_pass.shape[0], batch):
+            query_str = "[Accession] OR ".join(df_pass.loc[:,"Accession"][i:i+batch])
+            query_str = query_str + "[Accession]"
+            print(query_str)
+            esearch_reply = Entrez.esearch(db="Nuccore", term=query_str)
+            esearch_record = Entrez.read(esearch_reply)
+            #print(esearch_record)
+            for recid in esearch_record['IdList']:
+                efetch_reply = Entrez.efetch(db="Nuccore", id=recid, retmode="xml")
+                efetch_record = Entrez.read(efetch_reply)
+                #print(efetch_record[0]['GBSeq_organism'])
+                esearch_tax_reply = Entrez.esearch(db="Taxonomy", term="{}[All names]".format(efetch_record[0]['GBSeq_organism']))
+                esearch_tax_record = Entrez.read(esearch_tax_reply)
+                if esearch_tax_record['IdList']:
+                    try:
+                        efetch_tax_reply = Entrez.efetch(db="Taxonomy", id=esearch_tax_record['IdList'][0], retmode="xml")
+                    except HTTPError or ValueError:
+                        sleep(1)
+                        try:
+                            efetch_tax_reply = Entrez.efetch(db="Taxonomy", id=esearch_tax_record['IdList'][0], retmode="xml")
+                        except HTTPError:
+                            continue
+                    efetch_tax_record = Entrez.read(efetch_tax_reply)
+                    #print(efetch_tax_record[0]['Lineage'])
+                    taxonomy.append({'Accession': efetch_record[0]['GBSeq_accession-version'].rsplit(".", 1)[0], 'TaxId': efetch_tax_record[0]['TaxId'],
+                        efetch_tax_record[0]['Rank']: efetch_tax_record[0]['ScientificName'],
+                        'Lineage': efetch_tax_record[0]['Lineage'],
+                        'TaxNote': "",
+                        'ParentTaxNoRank': ""
+                        })
+                    for tax_level in efetch_tax_record[0]['LineageEx']:
+                        if tax_level['Rank'] in ['superkingdom', 'phylum', 'family', 'genus', 'species']:
+                            if taxonomy[-1].get(tax_level['Rank']) is None:
+                                taxonomy[-1][tax_level['Rank']] = tax_level['ScientificName']
+                    parent_tax = efetch_tax_record[0]['Lineage'].split("; ")[-1]
+                    if taxonomy[-1].get('genus') is not None and parent_tax != taxonomy[-1]['genus']:
+                        if parent_tax == taxonomy[-1]['species']:
+                            taxonomy[-1]['TaxNote'] = taxonomy[-1].get(efetch_tax_record[0]['Rank'])
+                        elif parent_tax.split(" ")[0] == "unclassified":
+                            taxonomy[-1]['TaxNote'] = parent_tax
+                        else:
+                            taxonomy[-1]['ParentTaxNoRank'] = parent_tax
+            #sleep(1)
 
-    taxonomy_data = {'Accession': [], 'TaxId': [],
-    'superkingdom': [], 'phylum': [], 'family': [], 'genus': [], 'species': [],
-    'Lineage': [],
-    'TaxNote': [],
-    'ParentTaxNoRank': []
-    }
+        taxonomy_data = {'Accession': [], 'TaxId': [],
+        'superkingdom': [], 'phylum': [], 'family': [], 'genus': [], 'species': [],
+        'Lineage': [],
+        'TaxNote': [],
+        'ParentTaxNoRank': []
+        }
 
-    # data = {'col_1': [3, 2, 1, 0], 'col_2': ['a', 'b', 'c', 'd']}
-    # pd.DataFrame.from_dict(data)
-    #print(taxonomy)
-    if taxonomy:
-        for rec in taxonomy:
-            for k in taxonomy_data.keys():
-                taxonomy_data[k].append(rec.get(k))
-        df_pass = df_pass.merge(pd.DataFrame.from_dict(taxonomy_data), how="left")
+        # data = {'col_1': [3, 2, 1, 0], 'col_2': ['a', 'b', 'c', 'd']}
+        # pd.DataFrame.from_dict(data)
+        #print(taxonomy)
+        if taxonomy:
+            for rec in taxonomy:
+                for k in taxonomy_data.keys():
+                    taxonomy_data[k].append(rec.get(k))
+            df_pass = df_pass.merge(pd.DataFrame.from_dict(taxonomy_data), how="left")
+
     if args.opt_suffix is None:
         args.opt_suffix = os.path.basename(args.input_res).replace("res", "filter.tsv")
     output_filename = os.path.join(args.output_folder, args.opt_suffix)
