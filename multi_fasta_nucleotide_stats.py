@@ -6,14 +6,8 @@ import argparse
 from copy import deepcopy
 from Bio import SeqIO
 
-if (len(sys.argv) == 1):
-    print("program <multi fasta> <opt N-threshold for print>")
-    sys.exit(1)
-else:
-    filename = sys.argv[1]
-
 parser = argparse.ArgumentParser(
-    description='Caclulates pairwise kmer identity between input sequences in multifasta, or list of fastas, lower triangle is template, upper is query id')
+    description='Caclulates nucleotide composition stats in multi fasta')
 parser.add_argument(
     '-m',
     dest="mfsa",
