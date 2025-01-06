@@ -49,11 +49,12 @@ for rec in records:
                 start = ins_p + n_shift - cummprevlen
             else:
                 break
-    # last chunk after the last deletion
-    chunks = chunks + rec.seq[start:len(rec)]
     cummprevlen += len(rec)
     # replace current fasta entry with the perforated one
-    rec.seq = chunks.seq
+        # last chunk after the last deletion
+    if chunks is not None:
+        chunks = chunks + rec.seq[start:len(rec)]
+        rec.seq = chunks.seq
     rec.id = f"{centry_id}_{cummprevlen}"
 
 print(records)
