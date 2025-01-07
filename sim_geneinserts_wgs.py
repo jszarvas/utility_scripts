@@ -19,6 +19,7 @@ with open(sys.argv[2], "r") as fp:
         start = int(tmp[0])
         gene_insidx.append(start)
         gene_posi[start] = tmp[1]
+gene_insidx.sort()
 
 # genes to be added
 gins_records = SeqIO.to_dict(SeqIO.parse(sys.argv[3], "fasta"))
